@@ -1,4 +1,4 @@
-﻿using Ecommerce.DAL.Common;
+using Ecommerce.DAL.Common;
 using Ecommerce.Domain.Domain;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -61,38 +61,65 @@ namespace Ecommerce.ProductApi.Controllers
         [HttpPost]
         public async Task<IActionResult> Post([FromBody] Product product)
         {
-            var existingCategory = _unitOfWork.CategoryRepository.GetCategoryByName(product.CategoryName);
-            if (existingCategory == null)
+            try
             {
-                _unitOfWork.CategoryRepository.Add(new Category { CategoryName = product.CategoryName });
-                _unitOfWork.ProductRepository.Add(product);                
+                var existingCategory = _unitOfWork.CategoryRepository.GetCategoryByName(product.CategoryName);
+                if (existingCategory == null)
+                {
+                    _unitOfWork.CategoryRepository.Add(new Category { CategoryName = product.CategoryName });
+                    _unitOfWork.ProductRepository.Add(product);
+                }
+                await _unitOfWork.CompleteAsync();
+                return CreatedAtAction(nameof(Get), new { id = product.ProductId }, product);
             }
-            await _unitOfWork.CompleteAsync();
-            return CreatedAtAction(nameof(Get), new { id = product.ProductId }, product);
+            catch (Exception ex)
+            {
+                _logger.LogError($"Something went wrong: {ex}");
+                return StatusCode(500, "Internal server error");
+            }
+            
         }
 
         [HttpPut("{id}")]
         public async Task<IActionResult> Put(int id, [FromBody] Product product)
         {
-            var existingProduct = await _unitOfWork.ProductRepository.GetByIdAsync(id);
-            if (existingProduct == null)
-                return NotFound();
+            try
+            {
+                var existingProduct = await _unitOfWork.ProductRepository.GetByIdAsync(id);
+                if (existingProduct == null)
+                    return NotFound();
 
-            _unitOfWork.ProductRepository.Update(product);
-            await _unitOfWork.CompleteAsync();
-            return NoContent();
+                _unitOfWork.ProductRepository.Update(product);
+                await _unitOfWork.CompleteAsync();
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Something went wrong: {ex}");
+                return StatusCode(500, "Internal server error");
+            }
+            
         }
 
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id)
         {
-            var product = await _unitOfWork.ProductRepository.GetByIdAsync(id);
-            if (product == null)
-                return NotFound();
+            try
+            {
+                var product = await _unitOfWork.ProductRepository.GetByIdAsync(id);
+                if (product == null)
+                    return NotFound();
 
-            _unitOfWork.ProductRepository.Remove(product);
-            await _unitOfWork.CompleteAsync();
-            return NoContent();
+                _unitOfWork.ProductRepository.Remove(product);
+                await _unitOfWork.CompleteAsync();
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Something went wrong: {ex}");
+                return StatusCode(500, "Internal server error");
+            }
+            
         }
        
     }
